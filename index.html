@@ -354,16 +354,16 @@ footer{border-top:1px solid var(--line); padding:24px; text-align:center; color:
       </div>
     </div>
     <div class="field">
-      <label>Rasm (kaver) havolasi</label>
-      <input type="text" id="w-media" placeholder="https://... (rasm URL manzili)">
+      <label>Rasm (kaver) havolasi — ixtiyoriy</label>
+      <input type="text" id="w-media" placeholder="https://... (agar bo'sh qoldirsangiz, pastdagi havoladan avtomatik olinadi)">
     </div>
     <div class="field">
       <label>Tavsif</label>
       <textarea id="w-desc" rows="3" placeholder="Ish haqida qisqacha..."></textarea>
     </div>
     <div class="field">
-      <label>To'liq ish havolasi (ixtiyoriy)</label>
-      <input type="text" id="w-link" placeholder="https://instagram.com/... yoki YouTube havolasi">
+      <label>Ish havolasi (Instagram / YouTube / TikTok va h.k.)</label>
+      <input type="text" id="w-link" placeholder="https://instagram.com/p/... yoki YouTube havolasi">
     </div>
     <div class="modal-actions">
       <button class="btn" id="workCancel" style="flex:1; justify-content:center;">Bekor qilish</button>
@@ -412,6 +412,14 @@ function rowToItem(r){
 }
 function itemToRow(i){
   return { id:i.id, title:i.title, category:i.category, aspect:i.aspect, media_url:i.mediaUrl||'', description:i.desc||'', link:i.link||'', date:i.date };
+}
+// Agar admin rasm havolasini kiritmagan bo'lsa, lekin ish havolasi (Instagram/YouTube/TikTok va h.k.) bo'lsa,
+// o'sha havoladan sahifaning kaver suratini avtomatik olib beradi.
+function autoThumb(link){
+  return `https://api.microlink.io/?url=${encodeURIComponent(link)}&meta=false&embed=image.url`;
+}
+function displayImageFor(item){
+  return item.mediaUrl || (item.link ? autoThumb(item.link) : '');
 }
 
 async function loadItems(){
@@ -484,8 +492,9 @@ function renderGrid(){
   }
   const sorted = [...filtered].sort((a,b)=> b.date - a.date);
   grid.innerHTML = sorted.map((item, idx)=>{
-    const mediaStyle = item.mediaUrl ? `style="background-image:url('${escapeAttr(item.mediaUrl)}')"` : '';
-    const placeholder = item.mediaUrl ? '' : `<div class="placeholder">${escapeHtml(item.title)}</div>`;
+    const displayImage = displayImageFor(item);
+    const mediaStyle = displayImage ? `style="background-image:url('${escapeAttr(displayImage)}')"` : '';
+    const placeholder = displayImage ? '' : `<div class="placeholder">${escapeHtml(item.title)}</div>`;
     return `
     <div class="card" data-aspect="${item.aspect}">
       ${isAdmin ? `<div class="admin-controls">
