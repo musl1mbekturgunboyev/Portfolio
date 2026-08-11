@@ -127,6 +127,9 @@ h1.hero-title .accent{color:var(--red);}
 }
 .card[data-aspect="9:16"] .card-media{aspect-ratio:9/16;}
 .card[data-aspect="1:1"] .card-media{aspect-ratio:1/1;}
+.card-media .cover-img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+}
 .card-media .placeholder{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   color:var(--text-faint); font-family:'JetBrains Mono',monospace; font-size:12px; text-align:center; padding:12px;
@@ -139,7 +142,7 @@ h1.hero-title .accent{color:var(--red);}
 .badge.cat{left:auto; right:10px; color:var(--red);}
 .play-icon{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .2s;
-  background:rgba(10,11,13,0.35);
+  background:rgba(10,11,13,0.35); pointer-events:none;
 }
 .card:hover .play-icon{opacity:1;}
 .play-icon svg{width:44px; height:44px;}
@@ -354,8 +357,8 @@ footer{border-top:1px solid var(--line); padding:24px; text-align:center; color:
       </div>
     </div>
     <div class="field">
-      <label>Rasm (kaver) havolasi — ixtiyoriy</label>
-      <input type="text" id="w-media" placeholder="https://... (agar bo'sh qoldirsangiz, pastdagi havoladan avtomatik olinadi)">
+      <label>Rasm yoki video kaver havolasi — ixtiyoriy</label>
+      <input type="text" id="w-media" placeholder="https://... (rasm URL, yoki .mp4/.webm video havolasi)">
     </div>
     <div class="field">
       <label>Tavsif</label>
@@ -420,6 +423,10 @@ function autoThumb(link){
 }
 function displayImageFor(item){
   return item.mediaUrl || (item.link ? autoThumb(item.link) : '');
+}
+// To'g'ridan-to'g'ri video fayl havolasi (.mp4/.webm/.mov/.m4v) berilganmi, aniqlaydi
+function isVideoFile(url){
+  return /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url||'');
 }
 
 async function loadItems(){
@@ -493,15 +500,21 @@ function renderGrid(){
   const sorted = [...filtered].sort((a,b)=> b.date - a.date);
   grid.innerHTML = sorted.map((item, idx)=>{
     const displayImage = displayImageFor(item);
-    const mediaStyle = displayImage ? `style="background-image:url('${escapeAttr(displayImage)}')"` : '';
-    const placeholder = displayImage ? '' : `<div class="placeholder">${escapeHtml(item.title)}</div>`;
+    const isVid = item.mediaUrl && isVideoFile(item.mediaUrl);
+    const imgTag = isVid
+      ? `<video src="${escapeAttr(item.mediaUrl)}" class="cover-img" muted loop playsinline preload="metadata" onmouseover="this.play()" onmouseout="this.pause()" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"></video>`
+      : (displayImage
+          ? `<img src="${escapeAttr(displayImage)}" alt="${escapeAttr(item.title)}" class="cover-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+          : '');
+    const placeholder = `<div class="placeholder" style="${(isVid||displayImage) ? 'display:none;' : ''}">${escapeHtml(item.title)}</div>`;
     return `
     <div class="card" data-aspect="${item.aspect}">
       ${isAdmin ? `<div class="admin-controls">
         <button data-edit="${item.id}" title="Tahrirlash">✎</button>
         <button data-del="${item.id}" title="O'chirish">🗑</button>
       </div>` : ''}
-      <div class="card-media" ${mediaStyle}>
+      <div class="card-media">
+        ${imgTag}
         ${placeholder}
         <span class="badge">${item.aspect}</span>
         <span class="badge cat" style="color:${CATEGORY_COLORS[item.category]}">${CATEGORY_LABELS[item.category]}</span>
